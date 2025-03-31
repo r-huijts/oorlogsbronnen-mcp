@@ -1,4 +1,4 @@
-import { OorlogsbronnenClient, CONTENT_TYPES } from '../src';
+import { OorlogsbronnenClient, CONTENT_TYPES } from '../src/lib/oorlogsbronnen-api.js';
 
 describe('OorlogsbronnenClient Search Tests', () => {
   const client = new OorlogsbronnenClient();
