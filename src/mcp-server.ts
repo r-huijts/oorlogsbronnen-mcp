@@ -247,15 +247,11 @@ server.tool(
       return {
         content: [{ 
           type: "text", 
-          text: JSON.stringify({
-            query,
-            total_results: totalResults,
-            categories,
-            metadata: {
-              timestamp: new Date().toISOString(),
-              processing_time: Date.now() - startTime
-            }
-          }, null, 2)
+          text: JSON.stringify(
+            formatSearchResponse(query, categories, startTime),
+            null, 
+            2
+          )
         }]
       };
     } catch (error) {
@@ -275,19 +271,99 @@ server.tool(
 function processSearchResults(items: any[]) {
   return items.map(item => {
     const attributes = item.tuple[0].attributes;
-    return {
+    const type = item.tuple[0].class[0].split('/').pop() || 'unknown';
+    
+    // Base result object
+    const result = {
       id: item.tuple[0].id,
       title: Array.isArray(attributes['http://schema.org/name']) 
         ? attributes['http://schema.org/name'][0] 
         : (attributes['http://schema.org/name'] || 'Untitled'),
-      type: item.tuple[0].class[0].split('/').pop() || 'unknown',
+      type,
       description: attributes['http://purl.org/dc/elements/1.1/description'] || null,
       url: processUrl(item.tuple[0].id),
       date: attributes['http://schema.org/dateCreated'] || null,
       creator: attributes['http://schema.org/creator'] || null,
       language: attributes['http://schema.org/inLanguage'] || null
     };
+
+    // Add media-specific attributes for photos and videos
+    if (type === 'Photograph' || type === 'VideoObject') {
+      return {
+        ...result,
+        contentUrl: attributes['http://schema.org/contentUrl'] || null,
+        thumbnailUrl: attributes['http://schema.org/thumbnailUrl'] || null,
+        mimeType: attributes['http://schema.org/encodingFormat'] || null,
+        width: attributes['http://schema.org/width'] || null,
+        height: attributes['http://schema.org/height'] || null,
+        duration: type === 'VideoObject' ? attributes['http://schema.org/duration'] || null : undefined,
+        license: attributes['http://schema.org/license'] || null,
+        keywords: attributes['http://schema.org/keywords'] || [],
+        copyrightHolder: attributes['http://schema.org/copyrightHolder'] || null,
+        source: {
+          name: attributes['http://schema.org/provider']?.[0] || 'Oorlogsbronnen',
+          url: result.url
+        }
+      };
+    }
+
+    // Add person-specific attributes
+    if (type === 'Person') {
+      return {
+        ...result,
+        birthPlace: attributes['http://schema.org/birthPlace'] || null,
+        deathPlace: attributes['http://schema.org/deathPlace'] || null,
+        jobTitle: attributes['http://schema.org/jobTitle'] || null,
+        preferredName: attributes['https://data.niod.nl/preferredName'] || null
+      };
+    }
+
+    return result;
   });
+}
+
+// Helper function to format the response for better presentation
+function formatSearchResponse(query: string, categories: any, startTime: number) {
+  // Group media items with their related content
+  const mediaGroups = new Map();
+
+  // Process each category
+  Object.entries(categories).forEach(([categoryType, categoryData]: [string, any]) => {
+    categoryData.items.forEach((item: any) => {
+      // Skip if no media content
+      if (!item.contentUrl && !item.thumbnailUrl) return;
+
+      const groupKey = item.creator || item.source?.name || 'Unknown';
+      if (!mediaGroups.has(groupKey)) {
+        mediaGroups.set(groupKey, {
+          groupName: groupKey,
+          items: [],
+          relatedContent: []
+        });
+      }
+
+      const group = mediaGroups.get(groupKey);
+      if (item.type === 'Photograph' || item.type === 'VideoObject') {
+        group.items.push(item);
+      } else {
+        group.relatedContent.push(item);
+      }
+    });
+  });
+
+  return {
+    query,
+    total_results: Object.values(categories).reduce(
+      (sum: number, category: any) => sum + category.count, 
+      0
+    ),
+    categories,
+    mediaGroups: Array.from(mediaGroups.values()),
+    metadata: {
+      timestamp: new Date().toISOString(),
+      processing_time: Date.now() - startTime
+    }
+  };
 }
 
 // Start receiving messages on stdin and sending messages on stdout
