@@ -189,32 +189,92 @@ server.tool(
       "but may take longer to process."
     )
   },
-  async ({ query, type, count }) => {
+  async ({ query, type, count = 10 }) => {
     try {
-      const [data, stats] = await client.search({ query, type, count });
+      const startTime = Date.now();
+      
+      // Initialize categories
+      const categories: Record<string, { count: number; items: any[] }> = {
+        Person: { count: 0, items: [] },
+        Photograph: { count: 0, items: [] },
+        Article: { count: 0, items: [] },
+        VideoObject: { count: 0, items: [] },
+        Thing: { count: 0, items: [] },
+        Place: { count: 0, items: [] }
+      };
+
+      // If type is specified, we only need to search that category
+      if (type) {
+        const [data, stats] = await client.search({ query, type, count });
+        if (data.items) {
+          categories[type] = {
+            count: stats.total,
+            items: processSearchResults(data.items)
+          };
+        }
+      } else {
+        // Search all categories with progress updates
+        let processedCount = 0;
+        const totalCategories = Object.keys(categories).length;
+
+        for (const categoryType of Object.keys(categories)) {
+          processedCount++;
+          
+          // Send progress update as part of the response stream
+          if (processedCount < totalCategories) {
+            return {
+              content: [{ 
+                type: "text", 
+                text: `Searching ${categoryType} records (${processedCount}/${totalCategories})...`
+              }],
+              done: false
+            };
+          }
+
+          try {
+            const [data, stats] = await client.search({ 
+              query, 
+              type: categoryType as any, 
+              count: Math.ceil(count / totalCategories) 
+            });
+            
+            if (data.items) {
+              categories[categoryType] = {
+                count: stats.total,
+                items: processSearchResults(data.items)
+              };
+            }
+          } catch (error) {
+            console.error(`Error searching ${categoryType}:`, error);
+            // Continue with other categories if one fails
+          }
+        }
+      }
+
+      // Calculate total results across all categories
+      const totalResults = Object.values(categories).reduce(
+        (sum, category) => sum + category.count, 
+        0
+      );
+
       return {
         content: [{ 
           type: "text", 
           text: JSON.stringify({
-            total: stats.total,
-            results: data.items.map(item => {
-              const attributes = item.tuple[0].attributes;
-              return {
-                id: item.tuple[0].id,
-                title: Array.isArray(attributes['http://schema.org/name']) 
-                  ? attributes['http://schema.org/name'][0] 
-                  : attributes['http://schema.org/name'] || 'Untitled',
-                type: item.tuple[0].class[0].split('/').pop() || 'unknown',
-                description: attributes['http://purl.org/dc/elements/1.1/description'],
-                url: processUrl(item.tuple[0].id)
-              };
-            })
+            query,
+            total_results: totalResults,
+            categories,
+            metadata: {
+              timestamp: new Date().toISOString(),
+              processing_time: Date.now() - startTime
+            }
           }, null, 2)
         }]
       };
-    } catch (error: unknown) {
+    } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       return {
+        isError: true,
         content: [{ 
           type: "text", 
           text: `Error performing search: ${errorMessage}`
@@ -223,6 +283,25 @@ server.tool(
     }
   }
 );
+
+// Helper function to process search results
+function processSearchResults(items: any[]) {
+  return items.map(item => {
+    const attributes = item.tuple[0].attributes;
+    return {
+      id: item.tuple[0].id,
+      title: Array.isArray(attributes['http://schema.org/name']) 
+        ? attributes['http://schema.org/name'][0] 
+        : (attributes['http://schema.org/name'] || 'Untitled'),
+      type: item.tuple[0].class[0].split('/').pop() || 'unknown',
+      description: attributes['http://purl.org/dc/elements/1.1/description'] || null,
+      url: processUrl(item.tuple[0].id),
+      date: attributes['http://schema.org/dateCreated'] || null,
+      creator: attributes['http://schema.org/creator'] || null,
+      language: attributes['http://schema.org/inLanguage'] || null
+    };
+  });
+}
 
 // Start receiving messages on stdin and sending messages on stdout
 const transport = new StdioServerTransport();
