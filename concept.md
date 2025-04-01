@@ -1,0 +1,87 @@
+# Oorlogsbronnen MCP Server: Concept Document
+
+## Overview
+
+The Oorlogsbronnen MCP Server is a specialized server implementation based on the Model Context Protocol (MCP) that provides structured access to Dutch World War II archives through the Oorlogsbronnen API. This server acts as a bridge between AI assistants and the rich historical data contained in these archives, enabling natural language queries about historical events, people, places, and artifacts from 1940-1945 in the Netherlands.
+
+## Architecture
+
+The server is built using the MCP SDK and implements three key components:
+
+1. **Transport Layer**: Utilizes the StdioServerTransport for communication via standard input/output streams
+2. **API Client**: Encapsulates communication with the Oorlogsbronnen REST API
+3. **MCP Tools**: Exposes functionality through standardized tools, prompts, and resources
+
+## Data Sources
+
+The server interfaces with the Oorlogsbronnen archive system through a REST API:
+
+- **Base URL**: https://rest.spinque.com/4/netwerkoorlogsbronnen/api/in10
+- **Content Types**: 
+  - Person (biographical records)
+  - Photograph (historical images)
+  - Article (news articles and documents)
+  - VideoObject (video footage)
+  - Thing (physical artifacts)
+  - Place (geographical records)
+
+## Available Tools
+
+### 1. search_ww2_nl_archives
+
+A comprehensive search tool for querying the Dutch WW2 archives with the following parameters:
+
+- **query** (required): Main search term (e.g., "Anne Frank", "Rotterdam bombing")
+- **type** (optional): Filter by content type (Person, Photograph, Article, VideoObject, Thing, Place)
+- **count** (optional): Number of results to return (1-100, default: 10)
+
+The tool returns structured data including:
+- Total result count
+- Item ID
+- Title
+- Content type
+- Description (when available)
+- URL to the full record
+
+## Prompt Templates
+
+### 1. search_help
+
+Provides guidance on how to effectively search the Dutch WW2 archives, including:
+- Parameter explanations
+- Example search queries
+- Available content types
+
+## Resource Handling
+
+The server exposes an "oorlogsbronnen" resource with the URI format:
+```
+oorlogsbronnen://{query}
+```
+
+This resource handler is currently implemented as a placeholder for future expansion.
+
+## Implementation Details
+
+1. **Error Handling**: The server implements robust error handling and logging to capture API errors and return formatted error messages.
+
+2. **Data Transformation**: Raw API responses are transformed into structured, user-friendly formats that extract the most relevant information from each record.
+
+3. **Debugging**: The implementation includes detailed logging of API requests and responses to facilitate troubleshooting.
+
+## Use Cases
+
+1. **Historical Research**: Retrieve information about specific historical events, people, or places related to WWII in the Netherlands.
+
+2. **Educational Assistance**: Support students and educators in accessing primary source materials about the war period.
+
+3. **Museum and Archive Integration**: Provide programmatic access to digital archive collections for integration with other applications.
+
+4. **Family History**: Help users discover records related to family members who lived during the occupation period.
+
+## Future Enhancements
+
+1. Resource handler implementation for expanded functionality
+2. Additional specialized search tools for specific content types
+3. Integration with related historical data sources
+4. Enhanced filtering capabilities for more precise search results 
