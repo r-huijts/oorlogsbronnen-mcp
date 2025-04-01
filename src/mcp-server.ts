@@ -213,29 +213,13 @@ server.tool(
           };
         }
       } else {
-        // Search all categories with progress updates
-        let processedCount = 0;
-        const totalCategories = Object.keys(categories).length;
-
-        for (const categoryType of Object.keys(categories)) {
-          processedCount++;
-          
-          // Send progress update as part of the response stream
-          if (processedCount < totalCategories) {
-            return {
-              content: [{ 
-                type: "text", 
-                text: `Searching ${categoryType} records (${processedCount}/${totalCategories})...`
-              }],
-              done: false
-            };
-          }
-
+        // Search all categories
+        const searchPromises = Object.keys(categories).map(async (categoryType) => {
           try {
             const [data, stats] = await client.search({ 
               query, 
               type: categoryType as any, 
-              count: Math.ceil(count / totalCategories) 
+              count: Math.ceil(count / Object.keys(categories).length) 
             });
             
             if (data.items) {
@@ -248,7 +232,10 @@ server.tool(
             console.error(`Error searching ${categoryType}:`, error);
             // Continue with other categories if one fails
           }
-        }
+        });
+
+        // Wait for all searches to complete
+        await Promise.all(searchPromises);
       }
 
       // Calculate total results across all categories
