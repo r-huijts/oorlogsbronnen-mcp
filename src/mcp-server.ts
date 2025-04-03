@@ -86,7 +86,17 @@ server.resource(
         
         resultText += `## ${index + 1}. ${title} (${type})\n`;
         resultText += `${description}\n`;
-        resultText += `[View Source](${url})\n\n`;
+        resultText += `[View Source](${url})\n`;
+        
+        // Add image URL if available
+        const imageUrl = attributes['http://schema.org/image'] || 
+                        attributes['http://schema.org/thumbnail'] ||
+                        attributes['http://schema.org/contentUrl'];
+        if (imageUrl) {
+            resultText += `\n![Image](${imageUrl})\n`;
+        }
+        
+        resultText += '\n';
       });
       
       return {
@@ -168,7 +178,12 @@ server.tool(
   "- Seeking information about Dutch resistance movements, Holocaust victims, or liberation\n" +
   "- Looking for authentic photographs, documents, or artifacts from WWII Netherlands\n" +
   "- Exploring specific events like Operation Market Garden, the February Strike, or Hunger Winter\n\n" +
-  "The tool provides primary source material including personal accounts, official records, newspaper articles, and photographs from Dutch museums and archives.",
+  "The tool provides primary source material including personal accounts, official records, newspaper articles, and photographs from Dutch museums and archives.\n\n" +
+  "For photographs and video content, the tool returns:\n" +
+  "- Original webpage URL where the image is displayed\n" +
+  "- Direct image URL when available (automatically extracted from known image banks)\n" +
+  "- Thumbnail URL for preview purposes\n" +
+  "- Additional metadata like creator, date, and copyright information",
   {
     query: z.string().describe(
       "The main search term or phrase to look for in the archives. Can include names (e.g., 'Anne Frank'), " +
@@ -238,11 +253,10 @@ server.tool(
         await Promise.all(searchPromises);
       }
 
-      // Calculate total results across all categories
-      const totalResults = Object.values(categories).reduce(
-        (sum, category) => sum + category.count, 
-        0
-      );
+      // Calculate total items and processing time
+      const totalItems = Object.values(categories as Record<string, { count: number }>)
+          .reduce((sum: number, cat: { count: number }) => sum + cat.count, 0);
+      const processingTime = ((Date.now() - startTime) / 1000).toFixed(2);
 
       return {
         content: [{ 
@@ -284,15 +298,20 @@ function processSearchResults(items: any[]) {
       url: processUrl(item.tuple[0].id),
       date: attributes['http://schema.org/dateCreated'] || null,
       creator: attributes['http://schema.org/creator'] || null,
-      language: attributes['http://schema.org/inLanguage'] || null
+      language: attributes['http://schema.org/inLanguage'] || null,
+      webpageUrl: attributes['http://purl.org/dc/elements/1.1/source'] || null
     };
 
     // Add media-specific attributes for photos and videos
     if (type === 'Photograph' || type === 'VideoObject') {
+      // Extract the best available image URL
+      const imageUrl = extractImageUrl(attributes);
+      const thumbnailUrl = attributes['http://schema.org/thumbnail'];
+
       return {
         ...result,
-        contentUrl: attributes['http://schema.org/contentUrl'] || null,
-        thumbnailUrl: attributes['http://schema.org/thumbnailUrl'] || null,
+        imageUrl: imageUrl || null,
+        thumbnailUrl: thumbnailUrl || null,
         mimeType: attributes['http://schema.org/encodingFormat'] || null,
         width: attributes['http://schema.org/width'] || null,
         height: attributes['http://schema.org/height'] || null,
@@ -302,7 +321,7 @@ function processSearchResults(items: any[]) {
         copyrightHolder: attributes['http://schema.org/copyrightHolder'] || null,
         source: {
           name: attributes['http://schema.org/provider']?.[0] || 'Oorlogsbronnen',
-          url: result.url
+          url: result.webpageUrl || result.url
         }
       };
     }
@@ -322,48 +341,89 @@ function processSearchResults(items: any[]) {
   });
 }
 
+// Helper function to extract the best available image URL
+function extractImageUrl(attributes: any) {
+  // First try schema.org image attributes
+  const directImageUrl = attributes['http://schema.org/image'] || 
+                       attributes['http://schema.org/contentUrl'];
+  if (directImageUrl) {
+    return directImageUrl;
+  }
+
+  // Try to extract from source URL if it's from a known image bank
+  const sourceUrl = attributes['http://purl.org/dc/elements/1.1/source'];
+  if (sourceUrl) {
+    // Extract media ID from beeldbankwo2.nl URLs
+    if (sourceUrl.includes('beeldbankwo2.nl')) {
+      const mediaId = sourceUrl.match(/\/media\/([a-f0-9-]+)/)?.[1];
+      if (mediaId) {
+        return `https://images.memorix.nl/niod/thumb/1000x1000/${mediaId}.jpg`;
+      }
+    }
+    // Extract media ID from cultureelerfgoed.nl URLs
+    else if (sourceUrl.includes('cultureelerfgoed.nl')) {
+      const mediaId = sourceUrl.match(/\/media\/([a-f0-9-]+)/)?.[1];
+      if (mediaId) {
+        return `https://images.memorix.nl/rce/thumb/1000x1000/${mediaId}.jpg`;
+      }
+    }
+    // Add more image bank patterns here as needed
+  }
+
+  return null;
+}
+
 // Helper function to format the response for better presentation
 function formatSearchResponse(query: string, categories: any, startTime: number) {
-  // Group media items with their related content
-  const mediaGroups = new Map();
-
-  // Process each category
-  Object.entries(categories).forEach(([categoryType, categoryData]: [string, any]) => {
-    categoryData.items.forEach((item: any) => {
-      // Skip if no media content
-      if (!item.contentUrl && !item.thumbnailUrl) return;
-
-      const groupKey = item.creator || item.source?.name || 'Unknown';
-      if (!mediaGroups.has(groupKey)) {
-        mediaGroups.set(groupKey, {
-          groupName: groupKey,
-          items: [],
-          relatedContent: []
-        });
-      }
-
-      const group = mediaGroups.get(groupKey);
-      if (item.type === 'Photograph' || item.type === 'VideoObject') {
-        group.items.push(item);
-      } else {
-        group.relatedContent.push(item);
-      }
-    });
-  });
-
-  return {
-    query,
-    total_results: Object.values(categories).reduce(
-      (sum: number, category: any) => sum + category.count, 
-      0
-    ),
-    categories,
-    mediaGroups: Array.from(mediaGroups.values()),
-    metadata: {
-      timestamp: new Date().toISOString(),
-      processing_time: Date.now() - startTime
+  let response = `# Search Results for "${query}"\n\n`;
+  
+  // Calculate total items and processing time
+  const totalItems = Object.values(categories as Record<string, { count: number }>)
+      .reduce((sum: number, cat: { count: number }) => sum + cat.count, 0);
+  const processingTime = ((Date.now() - startTime) / 1000).toFixed(2);
+  
+  response += `Found ${totalItems} items in ${processingTime} seconds.\n\n`;
+  
+  // Add results by category
+  for (const [category, data] of Object.entries(categories)) {
+    if ((data as { count: number }).count > 0) {
+      response += `## ${category} (${(data as { count: number }).count} items)\n\n`;
+      (data as { items: any[] }).items.forEach((item: any, index: number) => {
+        response += `### ${index + 1}. ${item.title}\n`;
+        if (item.description) {
+          response += `${item.description}\n\n`;
+        }
+        
+        // Add source links
+        if (item.webpageUrl) {
+          response += `[View Original Source](${item.webpageUrl})\n`;
+        }
+        response += `[View on Oorlogsbronnen](${item.url})\n`;
+        
+        // Add image if available
+        if (item.imageUrl) {
+          response += `\n![Image](${item.imageUrl})\n`;
+        } else if (item.thumbnailUrl) {
+          response += `\n![Thumbnail](${item.thumbnailUrl})\n`;
+        }
+        
+        // Add additional metadata
+        if (item.creator) {
+          response += `\nCreator: ${item.creator}\n`;
+        }
+        if (item.date) {
+          response += `Date: ${item.date}\n`;
+        }
+        if (item.copyrightHolder) {
+          response += `Copyright: ${item.copyrightHolder}\n`;
+        }
+        
+        response += '\n';
+      });
     }
-  };
+  }
+  
+  return response;
 }
 
 // Start receiving messages on stdin and sending messages on stdout
