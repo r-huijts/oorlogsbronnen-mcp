@@ -221,36 +221,100 @@ server.tool(
       // If type is specified, we only need to search that category
       if (type) {
         const [data, stats] = await client.search({ query, type, count });
-        if (data.items) {
+        if (data?.items) {
           categories[type] = {
             count: stats.total,
             items: processSearchResults(data.items)
           };
         }
       } else {
-        // Search all categories
-        const searchPromises = Object.keys(categories).map(async (categoryType) => {
-          try {
-            const [data, stats] = await client.search({ 
-              query, 
-              type: categoryType as any, 
-              count: Math.ceil(count / Object.keys(categories).length) 
+        // For general searches, use the search_reducer approach
+        try {
+          const [data, stats] = await client.search({ query, count });
+          
+          // If we have items but they don't have a specific type, categorize them
+          if (data?.items && data.items.length > 0) {
+            // Group items by content type
+            data.items.forEach(item => {
+              // Extract the type from the class
+              const type = item.tuple[0].class[0].split('/').pop();
+              
+              // Add to the appropriate category if it exists
+              if (type && categories[type]) {
+                categories[type].items.push(item);
+                categories[type].count++;
+              } else if (type) {
+                // Handle items with types not in our predefined categories
+                console.log(`Item with unknown type: ${type}`);
+              }
             });
             
-            if (data.items) {
-              categories[categoryType] = {
-                count: stats.total,
-                items: processSearchResults(data.items)
-              };
+            // Update the total counts for each category
+            Object.keys(categories).forEach(cat => {
+              // If we got results but category count is 0, set it to the items length
+              if (categories[cat].items.length > 0 && categories[cat].count <= 0) {
+                categories[cat].count = categories[cat].items.length;
+              }
+            });
+            
+            // Set total count if available
+            if (stats.total) {
+              // Distribute the total count proportionally to categories with items
+              const categoriesWithItems = Object.keys(categories).filter(
+                cat => categories[cat].items.length > 0
+              );
+              
+              if (categoriesWithItems.length > 0) {
+                const remainingTotal = stats.total - Object.values(categories)
+                  .reduce((sum, cat) => sum + cat.count, 0);
+                
+                if (remainingTotal > 0) {
+                  // Distribute remaining total proportionally
+                  const perCategory = Math.floor(remainingTotal / categoriesWithItems.length);
+                  categoriesWithItems.forEach(cat => {
+                    categories[cat].count += perCategory;
+                  });
+                }
+              }
             }
-          } catch (error) {
-            console.error(`Error searching ${categoryType}:`, error);
-            // Continue with other categories if one fails
+          } else {
+            console.error("No items returned from search_reducer query");
           }
-        });
+          
+          // Process the items in each category
+          Object.keys(categories).forEach(cat => {
+            if (categories[cat].items.length > 0) {
+              categories[cat].items = processSearchResults(categories[cat].items);
+            }
+          });
+          
+        } catch (error) {
+          console.error(`Error in unfiltered search:`, error);
+          
+          // Fallback to the old approach - search each category individually
+          const searchPromises = Object.keys(categories).map(async (categoryType) => {
+            try {
+              const [data, stats] = await client.search({ 
+                query, 
+                type: categoryType as any, 
+                count: Math.ceil(count / Object.keys(categories).length) 
+              });
+              
+              if (data?.items) {
+                categories[categoryType] = {
+                  count: stats.total,
+                  items: processSearchResults(data.items)
+                };
+              }
+            } catch (error) {
+              console.error(`Error searching ${categoryType}:`, error);
+              // Continue with other categories if one fails
+            }
+          });
 
-        // Wait for all searches to complete
-        await Promise.all(searchPromises);
+          // Wait for all searches to complete
+          await Promise.all(searchPromises);
+        }
       }
 
       // Calculate total items and processing time
@@ -261,11 +325,7 @@ server.tool(
       return {
         content: [{ 
           type: "text", 
-          text: JSON.stringify(
-            formatSearchResponse(query, categories, startTime),
-            null, 
-            2
-          )
+          text: formatSearchResponse(query, categories, startTime)
         }]
       };
     } catch (error) {
@@ -292,18 +352,18 @@ function processSearchResults(items: any[]) {
       id: item.tuple[0].id,
       title: Array.isArray(attributes['http://schema.org/name']) 
         ? attributes['http://schema.org/name'][0] 
-        : (attributes['http://schema.org/name'] || 'Untitled'),
+        : (attributes['http://schema.org/name'] || attributes['http://purl.org/dc/elements/1.1/title'] || 'Untitled'),
       type,
       description: attributes['http://purl.org/dc/elements/1.1/description'] || null,
       url: processUrl(item.tuple[0].id),
-      date: attributes['http://schema.org/dateCreated'] || null,
-      creator: attributes['http://schema.org/creator'] || null,
-      language: attributes['http://schema.org/inLanguage'] || null,
+      date: attributes['http://schema.org/dateCreated'] || attributes['http://purl.org/dc/elements/1.1/date'] || null,
+      creator: attributes['http://schema.org/creator'] || attributes['http://purl.org/dc/elements/1.1/creator'] || null,
+      language: attributes['http://schema.org/inLanguage'] || attributes['http://purl.org/dc/elements/1.1/language'] || null,
       webpageUrl: attributes['http://purl.org/dc/elements/1.1/source'] || null
     };
 
     // Add media-specific attributes for photos and videos
-    if (type === 'Photograph' || type === 'VideoObject') {
+    if (type === 'Photograph' || type === 'VideoObject' || type === 'CreativeWork') {
       // Extract the best available image URL
       const imageUrl = extractImageUrl(attributes);
       const thumbnailUrl = attributes['http://schema.org/thumbnail'];
@@ -320,7 +380,7 @@ function processSearchResults(items: any[]) {
         keywords: attributes['http://schema.org/keywords'] || [],
         copyrightHolder: attributes['http://schema.org/copyrightHolder'] || null,
         source: {
-          name: attributes['http://schema.org/provider']?.[0] || 'Oorlogsbronnen',
+          name: attributes['http://schema.org/provider']?.[0] || attributes['http://purl.org/dc/elements/1.1/publisher'] || 'Oorlogsbronnen',
           url: result.webpageUrl || result.url
         }
       };
@@ -336,6 +396,17 @@ function processSearchResults(items: any[]) {
         preferredName: attributes['https://data.niod.nl/preferredName'] || null
       };
     }
+    
+    // Add book-specific attributes
+    if (type === 'Book') {
+      return {
+        ...result,
+        author: attributes['http://purl.org/dc/elements/1.1/creator'] || null,
+        publisher: attributes['http://purl.org/dc/elements/1.1/publisher'] || null,
+        subject: attributes['http://purl.org/dc/elements/1.1/subject'] || [],
+        language: attributes['http://purl.org/dc/elements/1.1/language'] || null
+      };
+    }
 
     return result;
   });
@@ -348,6 +419,12 @@ function extractImageUrl(attributes: any) {
                        attributes['http://schema.org/contentUrl'];
   if (directImageUrl) {
     return directImageUrl;
+  }
+  
+  // Try thumbnail as a fallback
+  const thumbnailUrl = attributes['http://schema.org/thumbnail'];
+  if (thumbnailUrl) {
+    return thumbnailUrl;
   }
 
   // Try to extract from source URL if it's from a known image bank
@@ -367,7 +444,11 @@ function extractImageUrl(attributes: any) {
         return `https://images.memorix.nl/rce/thumb/1000x1000/${mediaId}.jpg`;
       }
     }
-    // Add more image bank patterns here as needed
+    // Extract from collectiegelderland.nl URLs
+    else if (sourceUrl.includes('collectiegelderland.nl')) {
+      // Try to use thumbnail directly from the attributes if available
+      return attributes['http://schema.org/thumbnail'];
+    }
   }
 
   return null;
@@ -446,4 +527,4 @@ function processUrl(id: string): string {
   
   // Otherwise, add the prefix to create a valid URL
   return `${prefix}${id}`;
-} 
+}

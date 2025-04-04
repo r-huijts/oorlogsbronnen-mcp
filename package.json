@@ -1,6 +1,6 @@
 {
   "name": "oorlogsbronnen-mcp",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Model Context Protocol (MCP) server for accessing Dutch WWII archives via the Oorlogsbronnen API. Enables AI assistants to search and retrieve historical documents, photographs, and records from the Netherlands during 1940-1945, including resistance movements, Jewish persecution, and the Nazi occupation.",
   "type": "module",
   "main": "dist/mcp-server.js",
@@ -8,7 +8,7 @@
     "build": "tsc",
     "start": "node dist/mcp-server.js",
     "dev": "tsc && node dist/mcp-server.js",
-    "test": "jest"
+    "test": "jest --config jest.config.cjs"
   },
   "keywords": [
     "mcp",
