@@ -2,6 +2,21 @@
 
 A Model Context Protocol (MCP) server that provides AI-powered access to the Oorlogsbronnen (War Sources) database. This server enables natural language interactions with historical World War II archives from the Netherlands.
 
+## Natural Language Interaction Examples
+
+Ask your AI assistant questions like these to explore Dutch WWII history:
+
+- **"What happened during the bombing of Rotterdam in May 1940?"**
+- **"Tell me about Anne Frank's life in hiding based on historical records."**
+- **"Show me photographs of the Dutch Hunger Winter of 1944-1945."**
+- **"Were any of my ancestors imprisoned in Camp Vught during the war?"**
+- **"I'm visiting Arnhem next week. What historical sites related to Operation Market Garden should I see?"**
+- **"Find information about resistance activities in Utrecht during the Nazi occupation."**
+- **"What was daily life like for Jewish families in Amsterdam before deportations began?"**
+- **"Show me firsthand accounts from people who witnessed the liberation of the Netherlands in 1945."**
+- **"What records exist about children who were hidden by Dutch families during the war?"**
+- **"I'm researching the impact of WWII on Dutch infrastructure. Can you find documents about the reconstruction of bridges and railways?"**
+
 ## Features
 
 - 🔍 Natural language search across the Oorlogsbronnen database
