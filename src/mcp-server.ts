@@ -182,6 +182,11 @@ server.tool(
   "SEARCH BEHAVIOR:\n" +
   "- When no type is specified, the search uses a comprehensive approach (search_reducer) that returns results across all content types for maximum coverage\n" +
   "- For more targeted searches, you can filter by content type using the type parameter\n\n" +
+  "RESULT LINKS:\n" +
+  "- Every result includes at least one working link to access the full content\n" +
+  "- 'View Original Source' links to the original archive or museum page\n" +
+  "- 'View on Oorlogsbronnen' links to the standardized entry in the central database\n" +
+  "- Links should always be included when referencing content in responses\n\n" +
   "For photographs and video content, the tool returns:\n" +
   "- Original webpage URL where the image is displayed\n" +
   "- Direct image URL when available (automatically extracted from known image banks)\n" +
