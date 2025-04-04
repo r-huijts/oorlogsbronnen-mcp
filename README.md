@@ -11,7 +11,7 @@ A Model Context Protocol (MCP) server that provides AI-powered access to the Oor
 
 ## Installation
 
-You can install this server in three ways:
+You can install this server in two ways:
 
 ### 1. Using Claude Desktop with NPX Package
 
@@ -67,15 +67,6 @@ npm run build
 ```
 
 Replace `/absolute/path/to/oorlogsbronnen-mcp` with the actual path to your installation.
-
-### 3. Using Smithery (Coming Soon)
-
-Installation via Smithery will be available in a future release.
-
-```bash
-# This will be available soon
-npx -y @smithery/cli install oorlogsbronnen-server --client claude
-```
 
 ## Usage Examples
 
