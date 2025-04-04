@@ -179,6 +179,9 @@ server.tool(
   "- Looking for authentic photographs, documents, or artifacts from WWII Netherlands\n" +
   "- Exploring specific events like Operation Market Garden, the February Strike, or Hunger Winter\n\n" +
   "The tool provides primary source material including personal accounts, official records, newspaper articles, and photographs from Dutch museums and archives.\n\n" +
+  "SEARCH BEHAVIOR:\n" +
+  "- When no type is specified, the search uses a comprehensive approach (search_reducer) that returns results across all content types for maximum coverage\n" +
+  "- For more targeted searches, you can filter by content type using the type parameter\n\n" +
   "For photographs and video content, the tool returns:\n" +
   "- Original webpage URL where the image is displayed\n" +
   "- Direct image URL when available (automatically extracted from known image banks)\n" +
@@ -191,7 +194,7 @@ server.tool(
       "or any combination of these. For better results, consider translating key terms to Dutch."
     ),
     type: z.enum(['Person', 'Photograph', 'Article', 'VideoObject', 'Thing', 'Place']).optional().describe(
-      "Filter results by content type. Available types:\n" +
+      "Filter results by content type. Leave empty for more comprehensive results across all content types. Available types:\n" +
       "- 'Person': Individual biographical records\n" +
       "- 'Photograph': Historical photographs\n" +
       "- 'Article': News articles and written documents\n" +
