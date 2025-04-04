@@ -248,7 +248,7 @@ server.tool(
                 categories[type].count++;
               } else if (type) {
                 // Handle items with types not in our predefined categories
-                console.log(`Item with unknown type: ${type}`);
+                console.error(`Found item with unrecognized type: ${type}`);
               }
             });
             
