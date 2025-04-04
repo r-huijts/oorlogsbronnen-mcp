@@ -52,7 +52,7 @@ After updating the configuration, restart Claude Desktop for the changes to take
 
 1. Clone this repository:
 ```bash
-git clone https://github.com/yourusername/oorlogsbronnen-mcp.git
+git clone https://github.com/r-huijts/oorlogsbronnen-mcp.git
 cd oorlogsbronnen-mcp
 ```
 
