@@ -209,11 +209,11 @@ server.tool(
       "- 'CreativeWork': Miscellaneous objects, manuscripts, and documents (shows as 'Object' in Dutch interface)"
     ),
     count: z.number().min(1).max(100).optional().describe(
-      "Number of results to return (1-100, default: 10). Larger numbers provide more comprehensive results " +
+      "Number of results to return (1-100, default: 50). Larger numbers provide more comprehensive results " +
       "but may take longer to process."
     )
   },
-  async ({ query, type, count = 10 }) => {
+  async ({ query, type, count = 50 }) => {
     try {
       const startTime = Date.now();
       
@@ -224,7 +224,8 @@ server.tool(
         Article: { count: 0, items: [] },
         VideoObject: { count: 0, items: [] },
         Thing: { count: 0, items: [] },
-        Place: { count: 0, items: [] }
+        Place: { count: 0, items: [] },
+        CreativeWork: { count: 0, items: [] }
       };
 
       // If type is specified, we only need to search that category
@@ -239,64 +240,97 @@ server.tool(
       } else {
         // For general searches, use the search_reducer approach
         try {
-          const [data, stats] = await client.search({ query, count });
+          // First, do a small preliminary search to determine category distribution
+          const [previewData, previewStats] = await client.search({ query, count: 20 });
           
-          // If we have items but they don't have a specific type, categorize them
-          if (data?.items && data.items.length > 0) {
-            // Group items by content type
-            data.items.forEach(item => {
-              // Extract the type from the class
-              const type = item.tuple[0].class[0].split('/').pop();
-              
-              // Add to the appropriate category if it exists
-              if (type && categories[type]) {
-                categories[type].items.push(item);
-                categories[type].count++;
-              } else if (type) {
-                // Handle items with types not in our predefined categories
-                console.error(`Found item with unrecognized type: ${type}`);
+          if (previewData?.items && previewData.items.length > 0) {
+            // Calculate content type distribution from the sample
+            const typeDistribution: Record<string, number> = {};
+            let totalSampled = 0;
+            
+            previewData.items.forEach((item: any) => {
+              const itemType = item.tuple[0].class[0].split('/').pop();
+              if (itemType) {
+                typeDistribution[itemType] = (typeDistribution[itemType] || 0) + 1;
+                totalSampled++;
               }
             });
             
-            // Update the total counts for each category
-            Object.keys(categories).forEach(cat => {
-              // If we got results but category count is 0, set it to the items length
-              if (categories[cat].items.length > 0 && categories[cat].count <= 0) {
-                categories[cat].count = categories[cat].items.length;
+            // Now distribute the count proportionally, with a minimum of 3 per type
+            const searchPromises = Object.keys(categories).map(async (categoryType) => {
+              try {
+                // Calculate proportional count
+                let typeCount = Math.ceil(count * (typeDistribution[categoryType] || 0) / totalSampled);
+                
+                // Ensure a minimum of 3 items per category, if available
+                typeCount = Math.max(typeCount, 3);
+                
+                const [typeData, typeStats] = await client.search({ 
+                  query, 
+                  type: categoryType as any, 
+                  count: typeCount
+                });
+                
+                if (typeData?.items) {
+                  categories[categoryType] = {
+                    count: typeStats.total,
+                    items: processSearchResults(typeData.items)
+                  };
+                }
+              } catch (error) {
+                console.error(`Error searching ${categoryType}:`, error);
               }
             });
+
+            // Wait for all searches to complete
+            await Promise.all(searchPromises);
             
-            // Set total count if available
-            if (stats.total) {
-              // Distribute the total count proportionally to categories with items
+            // Set approximate total counts
+            if (previewStats.total) {
               const categoriesWithItems = Object.keys(categories).filter(
                 cat => categories[cat].items.length > 0
               );
               
               if (categoriesWithItems.length > 0) {
-                const remainingTotal = stats.total - Object.values(categories)
-                  .reduce((sum, cat) => sum + cat.count, 0);
+                // Distribute total count proportionally
+                const itemCounts = categoriesWithItems.reduce((sum, cat) => 
+                  sum + categories[cat].items.length, 0
+                );
                 
-                if (remainingTotal > 0) {
-                  // Distribute remaining total proportionally
-                  const perCategory = Math.floor(remainingTotal / categoriesWithItems.length);
-                  categoriesWithItems.forEach(cat => {
-                    categories[cat].count += perCategory;
-                  });
-                }
+                categoriesWithItems.forEach(cat => {
+                  const proportion = categories[cat].items.length / itemCounts;
+                  categories[cat].count = Math.ceil(previewStats.total * proportion);
+                });
               }
             }
           } else {
-            console.error("No items returned from search_reducer query");
+            console.error("No items returned from search query");
+            // Fallback to individual category searches
+            const searchPromises = Object.keys(categories).map(async (categoryType) => {
+              try {
+                // Distribute count evenly across categories
+                const typeCount = Math.ceil(count / Object.keys(categories).length);
+                
+                const [typeData, typeStats] = await client.search({ 
+                  query, 
+                  type: categoryType as any, 
+                  count: typeCount
+                });
+                
+                if (typeData?.items) {
+                  categories[categoryType] = {
+                    count: typeStats.total,
+                    items: processSearchResults(typeData.items)
+                  };
+                }
+              } catch (error) {
+                console.error(`Error searching ${categoryType}:`, error);
+              }
+            });
+
+            // Wait for all searches to complete
+            await Promise.all(searchPromises);
           }
-          
-          // Process the items in each category
-          Object.keys(categories).forEach(cat => {
-            if (categories[cat].items.length > 0) {
-              categories[cat].items = processSearchResults(categories[cat].items);
-            }
-          });
-          
         } catch (error) {
           console.error(`Error in unfiltered search:`, error);
           
