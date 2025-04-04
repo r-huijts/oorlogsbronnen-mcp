@@ -39,7 +39,7 @@ Update your Claude configuration file (`~/Library/Application Support/Claude/cla
       "command": "npx",
       "args": [
         "-y",
-        "oorlogsbronnen-mcp-server"
+        "oorlogsbronnen-mcp"
       ]
     }
   }
