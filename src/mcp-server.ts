@@ -198,14 +198,15 @@ server.tool(
       "places (e.g., 'Rotterdam'), dates (e.g., '1940-1945'), events (e.g., 'February Strike 1941'), " +
       "or any combination of these. For better results, consider translating key terms to Dutch."
     ),
-    type: z.enum(['Person', 'Photograph', 'Article', 'VideoObject', 'Thing', 'Place']).optional().describe(
+    type: z.enum(['Person', 'Photograph', 'Article', 'VideoObject', 'Thing', 'Place', 'CreativeWork']).optional().describe(
       "Filter results by content type. Leave empty for more comprehensive results across all content types. Available types:\n" +
       "- 'Person': Individual biographical records\n" +
       "- 'Photograph': Historical photographs\n" +
       "- 'Article': News articles and written documents\n" +
       "- 'VideoObject': Video footage\n" +
       "- 'Thing': Physical artifacts\n" +
-      "- 'Place': Places and geographical records"
+      "- 'Place': Places and geographical records\n" +
+      "- 'CreativeWork': Miscellaneous objects, manuscripts, and documents (shows as 'Object' in Dutch interface)"
     ),
     count: z.number().min(1).max(100).optional().describe(
       "Number of results to return (1-100, default: 10). Larger numbers provide more comprehensive results " +
