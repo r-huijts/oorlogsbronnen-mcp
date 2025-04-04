@@ -11,13 +11,29 @@ A Model Context Protocol (MCP) server that provides AI-powered access to the Oor
 
 ## Installation
 
-### Prerequisites
+You can install this server in three ways:
 
-- Node.js 18 or higher
-- npm or yarn
-- Claude Desktop (or another MCP-compatible client)
+### 1. Using Claude Desktop with NPX Package
 
-### Installation Steps
+Update your Claude configuration file (`~/Library/Application Support/Claude/claude_desktop_config.json`):
+
+```json
+{
+  "mcpServers": {
+    "oorlogsbronnen-server": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "oorlogsbronnen-mcp-server"
+      ]
+    }
+  }
+}
+```
+
+After updating the configuration, restart Claude Desktop for the changes to take effect.
+
+### 2. From Source
 
 1. Clone this repository:
 ```bash
@@ -35,14 +51,12 @@ npm install
 npm run build
 ```
 
-### Configuring Claude Desktop
-
-To use this server with Claude Desktop, update your Claude configuration file (located at `~/Library/Application Support/Claude/claude_desktop_config.json`):
+4. Configure Claude Desktop by updating your configuration file (located at `~/Library/Application Support/Claude/claude_desktop_config.json`):
 
 ```json
 {
   "mcpServers": {
-    "oorlogsbronnen": {
+    "oorlogsbronnen-server": {
       "command": "node",
       "args": [
         "/absolute/path/to/oorlogsbronnen-mcp/dist/mcp-server.js"
@@ -53,6 +67,15 @@ To use this server with Claude Desktop, update your Claude configuration file (l
 ```
 
 Replace `/absolute/path/to/oorlogsbronnen-mcp` with the actual path to your installation.
+
+### 3. Using Smithery (Coming Soon)
+
+Installation via Smithery will be available in a future release.
+
+```bash
+# This will be available soon
+npx -y @smithery/cli install oorlogsbronnen-server --client claude
+```
 
 ## Usage Examples
 
