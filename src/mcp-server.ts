@@ -474,6 +474,18 @@ function formatSearchResponse(query: string, categories: any, startTime: number)
   
   response += `Found ${totalItems} items in ${processingTime} seconds.\n\n`;
   
+  // Add tip about content type filtering when many results are returned
+  if (totalItems > 10) {
+    const categoriesWithResults = Object.entries(categories)
+      .filter(([_, data]) => (data as { count: number }).count > 0)
+      .map(([category, data]) => `${category} (${(data as { count: number }).count})`)
+      .join(', ');
+    
+    response += `**Tip:** You can filter these results by adding a content type parameter:\n`;
+    response += `Available types: ${categoriesWithResults}\n\n`;
+    response += `Example: \`{ "query": "${query}", "type": "Photograph" }\`\n\n`;
+  }
+  
   // Add results by category
   for (const [category, data] of Object.entries(categories)) {
     if ((data as { count: number }).count > 0) {
