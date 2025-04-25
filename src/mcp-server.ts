@@ -562,9 +562,41 @@ function formatSearchResponse(query: string, categories: any, startTime: number)
   return response;
 }
 
-// Start receiving messages on stdin and sending messages on stdout
-const transport = new StdioServerTransport();
-await server.connect(transport);
+// Start the server with proper error handling
+try {
+    const transport = new StdioServerTransport();
+    
+    // Log startup for debugging
+    process.stderr.write('Starting server...\n');
+    
+    await server.connect(transport);
+    
+    // Log successful connection
+    process.stderr.write('Server initialized and connected\n');
+    
+    // Handle process termination
+    const cleanup = () => {
+        process.stderr.write('Server shutting down...\n');
+        try {
+            transport.close();
+        } catch (error) {
+            process.stderr.write(`Error during shutdown: ${error}\n`);
+        }
+        process.exit(0);
+    };
+
+    process.on('SIGINT', cleanup);
+    process.on('SIGTERM', cleanup);
+    
+    // Prevent unhandled promise rejections from crashing the server
+    process.on('unhandledRejection', (error: Error) => {
+        process.stderr.write(`Unhandled promise rejection: ${error}\n`);
+    });
+
+} catch (error) {
+    process.stderr.write(`Failed to start server: ${error}\n`);
+    process.exit(1);
+}
 
 // Helper function to properly format URLs
 function processUrl(id: string): string {

@@ -3,8 +3,8 @@ const { OorlogsbronnenClient } = require('./dist/lib/oorlogsbronnen-api');
 async function main() {
   const client = new OorlogsbronnenClient();
   
-  console.log('Searching for "101st Airborne Division" with type filter for "Book"');
-  console.log('This should use class:FILTER in the URL');
+  console.error('Searching for "101st Airborne Division" with type filter for "Book"');
+  console.error('This should use class:FILTER in the URL');
   
   const results = await client.search({ 
     query: '101st Airborne Division',
@@ -12,14 +12,14 @@ async function main() {
     count: 20 // Request more results to ensure we find books
   });
   
-  console.log(`Found ${results[1].total} total results`);
+  console.error(`Found ${results[1].total} total results`);
   
   // Get all Book results
   const bookItems = results[0].items.filter(item => 
     item.tuple[0].class[0].includes('Book')
   );
   
-  console.log(`Found ${bookItems.length} books about 101st Airborne Division`);
+  console.error(`Found ${bookItems.length} books about 101st Airborne Division`);
   
   // Display all book results
   bookItems.forEach((item, index) => {
@@ -29,12 +29,12 @@ async function main() {
     const publisher = attributes['http://purl.org/dc/elements/1.1/publisher'] || 'Unknown publisher';
     const id = item.tuple[0].id;
     
-    console.log(`\nBook ${index + 1}:`);
-    console.log(`Title: ${title}`);
-    console.log(`Author: ${author}`);
-    console.log(`Publisher: ${publisher}`);
-    console.log(`ID: ${id}`);
-    console.log(`Rank: ${item.rank}, Probability: ${item.probability}`);
+    console.error(`\nBook ${index + 1}:`);
+    console.error(`Title: ${title}`);
+    console.error(`Author: ${author}`);
+    console.error(`Publisher: ${publisher}`);
+    console.error(`ID: ${id}`);
+    console.error(`Rank: ${item.rank}, Probability: ${item.probability}`);
   });
 }
 

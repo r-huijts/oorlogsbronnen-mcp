@@ -149,12 +149,12 @@ describe('OorlogsbronnenClient Search Tests', () => {
     validateResponseStructure(photoResults, photoStats);
 
     // Log results for analysis
-    console.log('All results classes:', allResults.items.map(item => item.tuple[0].class));
-    console.log('Person results classes:', personResults.items.map(item => item.tuple[0].class));
-    console.log('Photo results classes:', photoResults.items.map(item => item.tuple[0].class));
+    console.error('All results classes:', allResults.items.map(item => item.tuple[0].class));
+    console.error('Person results classes:', personResults.items.map(item => item.tuple[0].class));
+    console.error('Photo results classes:', photoResults.items.map(item => item.tuple[0].class));
 
     // Verify different total counts
-    console.log('Total counts:', {
+    console.error('Total counts:', {
       all: allStats.total,
       person: personStats.total,
       photo: photoStats.total
@@ -184,7 +184,7 @@ describe('OorlogsbronnenClient Search Tests', () => {
 
       validateResponseStructure(results, stats);
       expect(results.items).toHaveLength(count);
-      console.log(`Requested ${count} results, received ${results.items.length} results`);
+      console.error(`Requested ${count} results, received ${results.items.length} results`);
     }
   });
 }); 

@@ -12,7 +12,7 @@ async function main() {
       offset: 0
     });
 
-    console.log(`Found ${stats.total} results`);
+    console.error(`Found ${stats.total} results`);
     
     // Print the first 5 results
     if (results.items && Array.isArray(results.items)) {
@@ -23,30 +23,30 @@ async function main() {
             ? person['http://schema.org/name'][0] 
             : person['http://schema.org/name'];
           
-          console.log('\n-------------------');
-          console.log(`Name: ${name}`);
+          console.error('\n-------------------');
+          console.error(`Name: ${name}`);
           
           if (person['http://purl.org/dc/elements/1.1/description']) {
-            console.log(`Description: ${person['http://purl.org/dc/elements/1.1/description']}`);
+            console.error(`Description: ${person['http://purl.org/dc/elements/1.1/description']}`);
           }
           
           if (person['http://schema.org/birthPlace']) {
             const birthPlace = Array.isArray(person['http://schema.org/birthPlace'])
               ? person['http://schema.org/birthPlace'][0]
               : person['http://schema.org/birthPlace'];
-            console.log(`Birth Place: ${birthPlace}`);
+            console.error(`Birth Place: ${birthPlace}`);
           }
 
           if (person['http://schema.org/jobTitle']) {
             const jobTitle = Array.isArray(person['http://schema.org/jobTitle'])
               ? person['http://schema.org/jobTitle'].join(', ')
               : person['http://schema.org/jobTitle'];
-            console.log(`Job Title: ${jobTitle}`);
+            console.error(`Job Title: ${jobTitle}`);
           }
         }
       });
     } else {
-      console.log('No items found in the results');
+      console.error('No items found in the results');
     }
   } catch (error) {
     if (error instanceof Error) {
