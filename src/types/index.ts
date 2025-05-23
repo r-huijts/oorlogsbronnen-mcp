@@ -1,6 +1,8 @@
+import type { ContentType } from '../lib/oorlogsbronnen-api.js';
+
 export interface SearchParams {
   query: string;
-  type?: string;
+  type?: ContentType;
   offset?: number;
   count?: number;
   config?: 'production' | 'test';

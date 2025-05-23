@@ -198,7 +198,15 @@ server.tool(
       "places (e.g., 'Rotterdam'), dates (e.g., '1940-1945'), events (e.g., 'February Strike 1941'), " +
       "or any combination of these. For better results, consider translating key terms to Dutch."
     ),
-    type: z.enum(['Person', 'Photograph', 'Article', 'VideoObject', 'Thing', 'Place', 'CreativeWork']).optional().describe(
+    type: z.enum([
+      CONTENT_TYPES.PERSON,
+      CONTENT_TYPES.PHOTO,
+      CONTENT_TYPES.ARTICLE,
+      CONTENT_TYPES.VIDEO,
+      CONTENT_TYPES.THING,
+      CONTENT_TYPES.PLACE,
+      CONTENT_TYPES.OBJECT
+    ]).optional().describe(
       "Filter results by content type. Leave empty for more comprehensive results across all content types. Available types:\n" +
       "- 'Person': Individual biographical records\n" +
       "- 'Photograph': Historical photographs\n" +
@@ -219,13 +227,13 @@ server.tool(
       
       // Initialize categories
       const categories: Record<string, { count: number; items: any[] }> = {
-        Person: { count: 0, items: [] },
-        Photograph: { count: 0, items: [] },
-        Article: { count: 0, items: [] },
-        VideoObject: { count: 0, items: [] },
-        Thing: { count: 0, items: [] },
-        Place: { count: 0, items: [] },
-        CreativeWork: { count: 0, items: [] }
+        [CONTENT_TYPES.PERSON]: { count: 0, items: [] },
+        [CONTENT_TYPES.PHOTO]: { count: 0, items: [] },
+        [CONTENT_TYPES.ARTICLE]: { count: 0, items: [] },
+        [CONTENT_TYPES.VIDEO]: { count: 0, items: [] },
+        [CONTENT_TYPES.THING]: { count: 0, items: [] },
+        [CONTENT_TYPES.PLACE]: { count: 0, items: [] },
+        [CONTENT_TYPES.OBJECT]: { count: 0, items: [] }
       };
 
       // If type is specified, we only need to search that category
@@ -406,7 +414,7 @@ function processSearchResults(items: any[]) {
     };
 
     // Add media-specific attributes for photos and videos
-    if (type === 'Photograph' || type === 'VideoObject' || type === 'CreativeWork') {
+    if (type === CONTENT_TYPES.PHOTO || type === CONTENT_TYPES.VIDEO || type === CONTENT_TYPES.OBJECT) {
       // Extract the best available image URL
       const imageUrl = extractImageUrl(attributes);
       const thumbnailUrl = attributes['http://schema.org/thumbnail'];
@@ -418,7 +426,7 @@ function processSearchResults(items: any[]) {
         mimeType: attributes['http://schema.org/encodingFormat'] || null,
         width: attributes['http://schema.org/width'] || null,
         height: attributes['http://schema.org/height'] || null,
-        duration: type === 'VideoObject' ? attributes['http://schema.org/duration'] || null : undefined,
+        duration: type === CONTENT_TYPES.VIDEO ? attributes['http://schema.org/duration'] || null : undefined,
         license: attributes['http://schema.org/license'] || null,
         keywords: attributes['http://schema.org/keywords'] || [],
         copyrightHolder: attributes['http://schema.org/copyrightHolder'] || null,
@@ -430,7 +438,7 @@ function processSearchResults(items: any[]) {
     }
 
     // Add person-specific attributes
-    if (type === 'Person') {
+    if (type === CONTENT_TYPES.PERSON) {
       return {
         ...result,
         birthPlace: attributes['http://schema.org/birthPlace'] || null,
