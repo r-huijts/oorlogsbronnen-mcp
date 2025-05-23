@@ -2,6 +2,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import { OorlogsbronnenClient, CONTENT_TYPES } from "./lib/oorlogsbronnen-api.js";
+import { processUrl } from "./lib/utils.js";
 
 // Create an MCP server with enhanced metadata for better detection
 const server = new McpServer({
@@ -198,6 +199,7 @@ server.tool(
       "places (e.g., 'Rotterdam'), dates (e.g., '1940-1945'), events (e.g., 'February Strike 1941'), " +
       "or any combination of these. For better results, consider translating key terms to Dutch."
     ),
+
     type: z.enum([
       CONTENT_TYPES.PERSON,
       CONTENT_TYPES.PHOTO,
@@ -214,7 +216,8 @@ server.tool(
       "- 'VideoObject': Video footage\n" +
       "- 'Thing': Physical artifacts\n" +
       "- 'Place': Places and geographical records\n" +
-      "- 'CreativeWork': Miscellaneous objects, manuscripts, and documents (shows as 'Object' in Dutch interface)"
+      "- 'CreativeWork': Miscellaneous objects, manuscripts, and documents (shows as 'Object' in Dutch interface)\n" +
+      "- 'Book': Published books and monographs"
     ),
     count: z.number().min(1).max(100).optional().describe(
       "Number of results to return (1-100, default: 50). Larger numbers provide more comprehensive results " +
@@ -227,6 +230,7 @@ server.tool(
       
       // Initialize categories
       const categories: Record<string, { count: number; items: any[] }> = {
+
         [CONTENT_TYPES.PERSON]: { count: 0, items: [] },
         [CONTENT_TYPES.PHOTO]: { count: 0, items: [] },
         [CONTENT_TYPES.ARTICLE]: { count: 0, items: [] },
@@ -573,21 +577,3 @@ function formatSearchResponse(query: string, categories: any, startTime: number)
 // Start receiving messages on stdin and sending messages on stdout
 const transport = new StdioServerTransport();
 await server.connect(transport);
-
-// Helper function to properly format URLs
-function processUrl(id: string): string {
-  const prefix = 'https://www.oorlogsbronnen.nl/record/';
-  
-  // If the ID already starts with the prefix and contains another URL
-  if (id.startsWith(prefix) && id.substring(prefix.length).startsWith('http')) {
-    return id.substring(prefix.length);
-  }
-  
-  // If the ID is already a full URL
-  if (id.startsWith('http')) {
-    return id;
-  }
-  
-  // Otherwise, add the prefix to create a valid URL
-  return `${prefix}${id}`;
-}
