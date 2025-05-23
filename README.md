@@ -168,6 +168,7 @@ Parameters:
     - "video": Video footage
     - "object": Physical artifacts and objects
     - "location": Places and geographical records
+    - "book": Published books, memoirs, and monographs
   - Use when: You need to focus on specific types of historical materials
   - Default: All types included
 

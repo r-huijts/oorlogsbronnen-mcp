@@ -198,7 +198,7 @@ server.tool(
       "places (e.g., 'Rotterdam'), dates (e.g., '1940-1945'), events (e.g., 'February Strike 1941'), " +
       "or any combination of these. For better results, consider translating key terms to Dutch."
     ),
-    type: z.enum(['Person', 'Photograph', 'Article', 'VideoObject', 'Thing', 'Place', 'CreativeWork']).optional().describe(
+    type: z.enum(['Person', 'Photograph', 'Article', 'VideoObject', 'Thing', 'Place', 'CreativeWork', 'Book']).optional().describe(
       "Filter results by content type. Leave empty for more comprehensive results across all content types. Available types:\n" +
       "- 'Person': Individual biographical records\n" +
       "- 'Photograph': Historical photographs\n" +
@@ -206,7 +206,8 @@ server.tool(
       "- 'VideoObject': Video footage\n" +
       "- 'Thing': Physical artifacts\n" +
       "- 'Place': Places and geographical records\n" +
-      "- 'CreativeWork': Miscellaneous objects, manuscripts, and documents (shows as 'Object' in Dutch interface)"
+      "- 'CreativeWork': Miscellaneous objects, manuscripts, and documents (shows as 'Object' in Dutch interface)\n" +
+      "- 'Book': Published books, memoirs, and monographs"
     ),
     count: z.number().min(1).max(100).optional().describe(
       "Number of results to return (1-100, default: 50). Larger numbers provide more comprehensive results " +
@@ -225,7 +226,8 @@ server.tool(
         VideoObject: { count: 0, items: [] },
         Thing: { count: 0, items: [] },
         Place: { count: 0, items: [] },
-        CreativeWork: { count: 0, items: [] }
+        CreativeWork: { count: 0, items: [] },
+        Book: { count: 0, items: [] }
       };
 
       // If type is specified, we only need to search that category
@@ -567,20 +569,20 @@ try {
     const transport = new StdioServerTransport();
     
     // Log startup for debugging
-    process.stderr.write('Starting server...\n');
+    console.error('Starting server...');
     
     await server.connect(transport);
     
     // Log successful connection
-    process.stderr.write('Server initialized and connected\n');
+    console.error('Server initialized and connected');
     
     // Handle process termination
     const cleanup = () => {
-        process.stderr.write('Server shutting down...\n');
+        console.error('Server shutting down...');
         try {
             transport.close();
         } catch (error) {
-            process.stderr.write(`Error during shutdown: ${error}\n`);
+            console.error(`Error during shutdown: ${error}`);
         }
         process.exit(0);
     };
@@ -590,11 +592,11 @@ try {
     
     // Prevent unhandled promise rejections from crashing the server
     process.on('unhandledRejection', (error: Error) => {
-        process.stderr.write(`Unhandled promise rejection: ${error}\n`);
+        console.error(`Unhandled promise rejection: ${error}`);
     });
 
 } catch (error) {
-    process.stderr.write(`Failed to start server: ${error}\n`);
+    console.error(`Failed to start server: ${error}`);
     process.exit(1);
 }
 

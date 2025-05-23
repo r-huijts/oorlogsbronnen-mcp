@@ -8,11 +8,12 @@ export const CONTENT_TYPES = [
   'VideoObject', 
   'Thing',
   'Place',
-  'CreativeWork'
+  'CreativeWork',
+  'Book'
 ] as const;
 
 export class OorlogsbronnenClient {
-  private baseUrl = 'https://rest.spinque.com/4/netwerkoorlogsbronnen/api/in10';
+  private baseUrl = 'https://rest.spinque.com/4/oorlogsbronnen/api/in10';
 
   async search({ query, type, count = 10, offset = 0, config = 'production' }: SearchParams): Promise<SearchResponse> {
     // Construct base URL with query
@@ -26,9 +27,6 @@ export class OorlogsbronnenClient {
     // Add results and parameters
     url += `/results,count?count=${count}&offset=${offset}&config=${config}`;
     
-    // Debug: Log the constructed URL
-    console.error('API Request URL:', url);
-    
     try {
       const response = await fetch(url);
       if (!response.ok) {
@@ -37,22 +35,9 @@ export class OorlogsbronnenClient {
       
       const data = await response.json() as SearchResponse;
       
-      // Debug: Log full response for troubleshooting
-      console.error('API Full Response:', JSON.stringify(data, null, 2));
-      
-      // Debug: Log response summary
-      console.error('API Response Summary:', {
-        status: response.status,
-        total: data[1]?.total,
-        itemCount: data[0]?.items?.length,
-        query,
-        type
-      });
-      
       return data;
     } catch (error) {
       if (error instanceof Error) {
-        console.error('API Error:', error.message);
         throw new Error(`Failed to fetch search results: ${error.message}`);
       }
       throw new Error('Failed to fetch search results');
