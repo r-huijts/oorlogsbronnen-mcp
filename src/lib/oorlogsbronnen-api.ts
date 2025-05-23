@@ -1,4 +1,5 @@
 import { SearchParams, SearchResponse } from '../types/index.js';
+import { processUrl } from './utils.js';
 
 // Define allowed content types for filtering
 export const CONTENT_TYPES = [
@@ -11,6 +12,21 @@ export const CONTENT_TYPES = [
   'CreativeWork',
   'Book'
 ] as const;
+
+// Also export enum-style object for backward compatibility
+export const CONTENT_TYPES_ENUM = {
+  PERSON: 'Person',
+  PHOTO: 'Photograph',
+  ARTICLE: 'Article',
+  VIDEO: 'VideoObject',
+  THING: 'Thing',
+  PLACE: 'Place',
+  OBJECT: 'CreativeWork',
+  BOOK: 'Book'
+} as const;
+
+// Type alias for all valid content type values
+export type ContentType = typeof CONTENT_TYPES[number];
 
 export class OorlogsbronnenClient {
   private baseUrl = 'https://rest.spinque.com/4/oorlogsbronnen/api/in10';
@@ -53,7 +69,7 @@ export class OorlogsbronnenAPI {
     this.client = new OorlogsbronnenClient();
   }
 
-  async search(query: string, type?: string, count: number = 10): Promise<any[]> {
+  async search(query: string, type?: ContentType, count: number = 10): Promise<any[]> {
     const [data] = await this.client.search({ query, type, count });
     return data.items.map(item => {
       const attributes = item.tuple[0].attributes;
@@ -69,21 +85,3 @@ export class OorlogsbronnenAPI {
     });
   }
 }
-
-// Helper function to properly format URLs
-function processUrl(id: string): string {
-  const prefix = 'https://www.oorlogsbronnen.nl/record/';
-  
-  // If the ID already starts with the prefix and contains another URL
-  if (id.startsWith(prefix) && id.substring(prefix.length).startsWith('http')) {
-    return id.substring(prefix.length);
-  }
-  
-  // If the ID is already a full URL
-  if (id.startsWith('http')) {
-    return id;
-  }
-  
-  // Otherwise, add the prefix to create a valid URL
-  return `${prefix}${id}`;
-} 

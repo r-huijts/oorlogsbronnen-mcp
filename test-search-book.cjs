@@ -1,4 +1,4 @@
-const { OorlogsbronnenClient } = require('./dist/lib/oorlogsbronnen-api');
+const { OorlogsbronnenClient, CONTENT_TYPES } = require('./dist/lib/oorlogsbronnen-api');
 
 async function main() {
   const client = new OorlogsbronnenClient();
@@ -6,9 +6,9 @@ async function main() {
   console.error('Searching for "101st Airborne Division" with type filter for "Book"');
   console.error('This should use class:FILTER in the URL');
   
-  const results = await client.search({ 
+  const results = await client.search({
     query: '101st Airborne Division',
-    type: 'Book',
+    type: CONTENT_TYPES.BOOK,
     count: 20 // Request more results to ensure we find books
   });
   

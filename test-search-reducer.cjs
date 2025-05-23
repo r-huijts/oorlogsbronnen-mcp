@@ -1,4 +1,4 @@
-const { OorlogsbronnenClient } = require('./dist/lib/oorlogsbronnen-api');
+const { OorlogsbronnenClient, CONTENT_TYPES } = require('./dist/lib/oorlogsbronnen-api');
 
 async function main() {
   const client = new OorlogsbronnenClient();
@@ -28,9 +28,9 @@ async function main() {
   console.error('Test 2: Searching for "101st Airborne Division" with type filter for "Photograph"');
   console.error('This should use class:FILTER in the URL');
   
-  const resultsWithType = await client.search({ 
+  const resultsWithType = await client.search({
     query: '101st Airborne Division',
-    type: 'Photograph'
+    type: CONTENT_TYPES.PHOTO
   });
   
   console.error(`Found ${resultsWithType[1].total} total results`);

@@ -1,7 +1,8 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
-import { OorlogsbronnenClient, CONTENT_TYPES } from "./lib/oorlogsbronnen-api.js";
+import { OorlogsbronnenClient, CONTENT_TYPES, CONTENT_TYPES_ENUM } from "./lib/oorlogsbronnen-api.js";
+import { processUrl } from "./lib/utils.js";
 
 // Create an MCP server with enhanced metadata for better detection
 const server = new McpServer({
@@ -198,7 +199,16 @@ server.tool(
       "places (e.g., 'Rotterdam'), dates (e.g., '1940-1945'), events (e.g., 'February Strike 1941'), " +
       "or any combination of these. For better results, consider translating key terms to Dutch."
     ),
-    type: z.enum(['Person', 'Photograph', 'Article', 'VideoObject', 'Thing', 'Place', 'CreativeWork', 'Book']).optional().describe(
+    type: z.enum([
+      CONTENT_TYPES_ENUM.PERSON,
+      CONTENT_TYPES_ENUM.PHOTO,
+      CONTENT_TYPES_ENUM.ARTICLE,
+      CONTENT_TYPES_ENUM.VIDEO,
+      CONTENT_TYPES_ENUM.THING,
+      CONTENT_TYPES_ENUM.PLACE,
+      CONTENT_TYPES_ENUM.OBJECT,
+      CONTENT_TYPES_ENUM.BOOK
+    ]).optional().describe(
       "Filter results by content type. Leave empty for more comprehensive results across all content types. Available types:\n" +
       "- 'Person': Individual biographical records\n" +
       "- 'Photograph': Historical photographs\n" +
@@ -220,14 +230,14 @@ server.tool(
       
       // Initialize categories
       const categories: Record<string, { count: number; items: any[] }> = {
-        Person: { count: 0, items: [] },
-        Photograph: { count: 0, items: [] },
-        Article: { count: 0, items: [] },
-        VideoObject: { count: 0, items: [] },
-        Thing: { count: 0, items: [] },
-        Place: { count: 0, items: [] },
-        CreativeWork: { count: 0, items: [] },
-        Book: { count: 0, items: [] }
+        [CONTENT_TYPES_ENUM.PERSON]: { count: 0, items: [] },
+        [CONTENT_TYPES_ENUM.PHOTO]: { count: 0, items: [] },
+        [CONTENT_TYPES_ENUM.ARTICLE]: { count: 0, items: [] },
+        [CONTENT_TYPES_ENUM.VIDEO]: { count: 0, items: [] },
+        [CONTENT_TYPES_ENUM.THING]: { count: 0, items: [] },
+        [CONTENT_TYPES_ENUM.PLACE]: { count: 0, items: [] },
+        [CONTENT_TYPES_ENUM.OBJECT]: { count: 0, items: [] },
+        [CONTENT_TYPES_ENUM.BOOK]: { count: 0, items: [] }
       };
 
       // If type is specified, we only need to search that category
@@ -408,7 +418,7 @@ function processSearchResults(items: any[]) {
     };
 
     // Add media-specific attributes for photos and videos
-    if (type === 'Photograph' || type === 'VideoObject' || type === 'CreativeWork') {
+    if (type === CONTENT_TYPES_ENUM.PHOTO || type === CONTENT_TYPES_ENUM.VIDEO || type === CONTENT_TYPES_ENUM.OBJECT) {
       // Extract the best available image URL
       const imageUrl = extractImageUrl(attributes);
       const thumbnailUrl = attributes['http://schema.org/thumbnail'];
@@ -420,7 +430,7 @@ function processSearchResults(items: any[]) {
         mimeType: attributes['http://schema.org/encodingFormat'] || null,
         width: attributes['http://schema.org/width'] || null,
         height: attributes['http://schema.org/height'] || null,
-        duration: type === 'VideoObject' ? attributes['http://schema.org/duration'] || null : undefined,
+        duration: type === CONTENT_TYPES_ENUM.VIDEO ? attributes['http://schema.org/duration'] || null : undefined,
         license: attributes['http://schema.org/license'] || null,
         keywords: attributes['http://schema.org/keywords'] || [],
         copyrightHolder: attributes['http://schema.org/copyrightHolder'] || null,
@@ -432,7 +442,7 @@ function processSearchResults(items: any[]) {
     }
 
     // Add person-specific attributes
-    if (type === 'Person') {
+    if (type === CONTENT_TYPES_ENUM.PERSON) {
       return {
         ...result,
         birthPlace: attributes['http://schema.org/birthPlace'] || null,
@@ -443,7 +453,7 @@ function processSearchResults(items: any[]) {
     }
     
     // Add book-specific attributes
-    if (type === 'Book') {
+    if (type === CONTENT_TYPES_ENUM.BOOK) {
       return {
         ...result,
         author: attributes['http://purl.org/dc/elements/1.1/creator'] || null,
@@ -598,22 +608,4 @@ try {
 } catch (error) {
     console.error(`Failed to start server: ${error}`);
     process.exit(1);
-}
-
-// Helper function to properly format URLs
-function processUrl(id: string): string {
-  const prefix = 'https://www.oorlogsbronnen.nl/record/';
-  
-  // If the ID already starts with the prefix and contains another URL
-  if (id.startsWith(prefix) && id.substring(prefix.length).startsWith('http')) {
-    return id.substring(prefix.length);
-  }
-  
-  // If the ID is already a full URL
-  if (id.startsWith('http')) {
-    return id;
-  }
-  
-  // Otherwise, add the prefix to create a valid URL
-  return `${prefix}${id}`;
 }
