@@ -1,15 +1,16 @@
 import { SearchParams, SearchResponse } from '../types/index.js';
 
 // Define allowed content types for filtering
-export const CONTENT_TYPES = [
-  'Person',
-  'Photograph',
-  'Article',
-  'VideoObject', 
-  'Thing',
-  'Place',
-  'CreativeWork'
-] as const;
+export const CONTENT_TYPES = {
+  PERSON: 'Person',
+  PHOTO: 'Photograph',
+  ARTICLE: 'Article',
+  VIDEO: 'VideoObject',
+  OBJECT: 'Thing',
+  LOCATION: 'Place',
+  CREATIVE_WORK: 'CreativeWork',
+  BOOK: 'Book'
+} as const;
 
 export class OorlogsbronnenClient {
   private baseUrl = 'https://rest.spinque.com/4/netwerkoorlogsbronnen/api/in10';
