@@ -1,17 +1,19 @@
 import { SearchParams, SearchResponse } from '../types/index.js';
 import { processUrl } from './utils.js';
 
-// Define allowed content types for filtering
+// Define allowed content types for filtering using an enum-style object
 export const CONTENT_TYPES = {
   PERSON: 'Person',
   PHOTO: 'Photograph',
   ARTICLE: 'Article',
   VIDEO: 'VideoObject',
-  OBJECT: 'Thing',
-  LOCATION: 'Place',
-  CREATIVE_WORK: 'CreativeWork',
-  BOOK: 'Book'
+  THING: 'Thing',
+  PLACE: 'Place',
+  OBJECT: 'CreativeWork'
 } as const;
+
+// Type alias for all valid content type values
+export type ContentType = typeof CONTENT_TYPES[keyof typeof CONTENT_TYPES];
 
 export class OorlogsbronnenClient {
   private baseUrl = 'https://rest.spinque.com/4/netwerkoorlogsbronnen/api/in10';
