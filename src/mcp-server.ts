@@ -2,6 +2,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import { OorlogsbronnenClient, CONTENT_TYPES } from "./lib/oorlogsbronnen-api.js";
+import { processUrl } from "./lib/utils.js";
 
 // Create an MCP server with enhanced metadata for better detection
 const server = new McpServer({
@@ -567,21 +568,3 @@ function formatSearchResponse(query: string, categories: any, startTime: number)
 // Start receiving messages on stdin and sending messages on stdout
 const transport = new StdioServerTransport();
 await server.connect(transport);
-
-// Helper function to properly format URLs
-function processUrl(id: string): string {
-  const prefix = 'https://www.oorlogsbronnen.nl/record/';
-  
-  // If the ID already starts with the prefix and contains another URL
-  if (id.startsWith(prefix) && id.substring(prefix.length).startsWith('http')) {
-    return id.substring(prefix.length);
-  }
-  
-  // If the ID is already a full URL
-  if (id.startsWith('http')) {
-    return id;
-  }
-  
-  // Otherwise, add the prefix to create a valid URL
-  return `${prefix}${id}`;
-}
